@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>反應速度測試</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #1e1e1e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: "Microsoft JhengHei", sans-serif;
+        }
+
+        /* 整體容器 */
+        #container {
+            display: flex;
+            gap: 40px;
+        }
+
+        /* 中間測試區（縮小 + 圓角） */
+        #testArea {
+            width: 380px;
+            height: 260px;
+            background-color: #003060;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* 右側紀錄區（縮小 + 圓角） */
+        #recordArea {
+            width: 260px;
+            height: 260px;
+            background-color: #272727;
+            border-radius: 20px;
+            color: #ffffff;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        #recordArea h2 {
+            margin-top: 0;
+            text-align: center;
+            font-size: 22px;
+        }
+
+        .record {
+            font-size: 20px;
+            margin: 5px 0;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <div id="testArea">點擊開始</div>
+
+    <div id="recordArea">
+        <h2>反應紀錄</h2>
+        <div id="records"></div>
+    </div>
+</div>
+
+<script>
+let testArea = document.getElementById("testArea");
+let records = document.getElementById("records");
+
+let hasStarted = false;       // 是否已經開始測試
+let readyToClick = false;     // 是否已經變綠色
+let startTime = 0;            // 計時起點
+let timeoutID = null;         // 用於控制隨機延遲
+let count = 0;                // 測試次數計數器
+
+testArea.addEventListener("click", function () {
+    // 尚未開始 → 開始測試
+    if (!hasStarted) {
+        hasStarted = true;
+        testArea.style.backgroundColor = "#930000";
+        testArea.textContent = "綠色時請點擊!";
+
+        // 隨機 1.5 ~ 5 秒變綠
+        let delay = 1500 + Math.random() * (5000 - 1500);
+
+        timeoutID = setTimeout(() => {
+            testArea.style.backgroundColor = "#007500";
+            testArea.textContent = "點擊!";
+            readyToClick = true;
+            startTime = performance.now();
+        }, delay);
+
+        return;
+    }
+
+    // 若過早點擊 (還沒變綠)
+    if (hasStarted && !readyToClick) {
+        testArea.textContent = "太早了! 重新開始";
+        testArea.style.backgroundColor = "#003060";
+        hasStarted = false;
+        clearTimeout(timeoutID);
+        return;
+    }
+
+    // 綠色 → 計算反應時間 (秒, 小數 4 位)
+    if (readyToClick) {
+        let reactionMs = performance.now() - startTime;
+        let reactionSec = (reactionMs / 1000).toFixed(4); // 秒數 4 位小數
+
+        count++; // 增加測試次數
+        
+        // 新增紀錄（包含次序）
+        let div = document.createElement("div");
+        div.className = "record";
+        div.textContent = count + ".  " + reactionSec + " 秒";
+        records.prepend(div);
+
+        // 重置
+        testArea.style.backgroundColor = "#003060";
+        testArea.textContent = "點擊開始";
+        hasStarted = false;
+        readyToClick = false;
+    }
+});
+</script>
+
+</body>
+</html>
+

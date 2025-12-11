@@ -14,13 +14,11 @@
             font-family: "Microsoft JhengHei", sans-serif;
         }
 
-        /* 整體容器 */
         #container {
             display: flex;
             gap: 40px;
         }
 
-        /* 中間測試區（縮小 + 圓角） */
         #testArea {
             width: 380px;
             height: 260px;
@@ -33,9 +31,10 @@
             font-size: 28px;
             cursor: pointer;
             user-select: none;
+            position: relative;
+            z-index: 1;
         }
 
-        /* 右側紀錄區（縮小 + 圓角） */
         #recordArea {
             width: 260px;
             height: 260px;
@@ -59,6 +58,40 @@
             border-bottom: 1px solid #444;
             padding-bottom: 5px;
         }
+
+        #averageBox {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 2px solid #555;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        /* popup 設定：置於中間上方，不會攔截滑鼠事件 */
+        #popupContainer {
+            position: fixed;
+            top: 8%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            pointer-events: none; /* 不擋點擊 */
+            z-index: 9999;
+            display: none;
+        }
+
+        #popupContainer img {
+            max-width: 180px; /* 小於 testArea 寬度 */
+            max-height: 160px; /* 小於 testArea 高度 */
+            display: block;
+            margin: 0 auto;
+        }
+
+        #popupText {
+            color: #BEBEBE;
+            font-size: 20px;
+            margin-top: 8px;
+            text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+        }
     </style>
 </head>
 <body>
@@ -69,27 +102,93 @@
     <div id="recordArea">
         <h2>反應紀錄</h2>
         <div id="records"></div>
+        <div id="averageBox">平均：-- 秒</div>
     </div>
 </div>
 
 <script>
 let testArea = document.getElementById("testArea");
 let records = document.getElementById("records");
+let averageBox = document.getElementById("averageBox");
 
-let hasStarted = false;       // 是否已經開始測試
-let readyToClick = false;     // 是否已經變綠色
-let startTime = 0;            // 計時起點
-let timeoutID = null;         // 用於控制隨機延遲
-let count = 0;                // 測試次數計數器
+let hasStarted = false;
+let readyToClick = false;
+let startTime = 0;
+let timeoutID = null;
+let times = []; // 儲存所有反應時間
 
+function updateAverage() {
+    if (times.length === 0) {
+        averageBox.textContent = "平均：-- 秒";
+        return;
+    }
+    let sum = times.reduce((a, b) => a + b, 0);
+    let avg = (sum / times.length).toFixed(4);
+    averageBox.textContent = "平均：" + avg + " 秒";
+}
+
+// popup 相關元素 (定義在下方 HTML，但先取元素為安全)
+function ensurePopupElements() {
+    // lazy: 透過 id 取得，若不存在就建立
+    if (!document.getElementById('popupContainer')) {
+        const container = document.createElement('div');
+        container.id = 'popupContainer';
+        container.style.cssText = 'position: fixed; top: 8%; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; z-index: 9999; display: none;';
+        const img = document.createElement('img');
+        img.id = 'popupImg';
+        img.style.cssText = 'max-width:180px; max-height:160px; display:block; margin:0 auto;';
+        const txt = document.createElement('div');
+        txt.id = 'popupText';
+        txt.style.cssText = 'color: #BEBEBE; font-size:20px; margin-top:8px;';
+        container.appendChild(img);
+        container.appendChild(txt);
+        document.body.appendChild(container);
+    }
+}
+ensurePopupElements();
+let popupContainer = document.getElementById("popupContainer");
+let popupImg = document.getElementById("popupImg");
+let popupText = document.getElementById("popupText");
+
+// 圖片檔名（使用使用者上傳的原始檔名）
+let images = [
+    "螢幕擷取畫面 2025-12-11 110759.png",
+    "螢幕擷取畫面 2025-12-11 111034.png",
+    "螢幕擷取畫面 2025-12-11 111055.png"
+];
+
+// 隨機文字
+let texts = [
+    "快點快點!!!",
+    "太遜了吧~~~",
+    "就這?",
+    "老奶奶都比你快"
+];
+
+function showPopup() {
+    // 隨機選圖與文字
+    let img = images[Math.floor(Math.random() * images.length)];
+    let txt = texts[Math.floor(Math.random() * texts.length)];
+
+    // 指派 src（若路徑或檔名不正確，瀏覽器會在 console 顯示錯誤）
+    popupImg.src = img;
+    popupText.textContent = txt;
+
+    popupContainer.style.display = 'block';
+
+    // 1 秒後自動隱藏
+    setTimeout(() => {
+        popupContainer.style.display = 'none';
+    }, 1000);
+}
+
+// 主互動邏輯
 testArea.addEventListener("click", function () {
-    // 尚未開始 → 開始測試
     if (!hasStarted) {
         hasStarted = true;
         testArea.style.backgroundColor = "#930000";
         testArea.textContent = "綠色時請點擊!";
 
-        // 隨機 1.5 ~ 5 秒變綠
         let delay = 1500 + Math.random() * (5000 - 1500);
 
         timeoutID = setTimeout(() => {
@@ -102,7 +201,6 @@ testArea.addEventListener("click", function () {
         return;
     }
 
-    // 若過早點擊 (還沒變綠)
     if (hasStarted && !readyToClick) {
         testArea.textContent = "太早了! 重新開始";
         testArea.style.backgroundColor = "#003060";
@@ -111,20 +209,27 @@ testArea.addEventListener("click", function () {
         return;
     }
 
-    // 綠色 → 計算反應時間 (秒, 小數 4 位)
     if (readyToClick) {
+        // 計算反應時間一次，避免重複宣告與語法錯誤
         let reactionMs = performance.now() - startTime;
-        let reactionSec = (reactionMs / 1000).toFixed(4); // 秒數 4 位小數
+        let reactionSec = (reactionMs / 1000).toFixed(4);
 
-        count++; // 增加測試次數
-        
-        // 新增紀錄（包含次序）
+        // 若超過 0.55 秒，顯示隨機圖片與批評文字（持續 1 秒）
+        if (parseFloat(reactionSec) > 0.55) {
+            showPopup();
+        }
+
+        // 加入紀錄與更新平均
+        times.push(parseFloat(reactionSec));
+
         let div = document.createElement("div");
         div.className = "record";
-        div.textContent = count + ".  " + reactionSec + " 秒";
+        div.textContent = (times.length) + ".  " + reactionSec + " 秒";
         records.prepend(div);
 
-        // 重置
+        updateAverage();
+
+        // 重置 UI
         testArea.style.backgroundColor = "#003060";
         testArea.textContent = "點擊開始";
         hasStarted = false;

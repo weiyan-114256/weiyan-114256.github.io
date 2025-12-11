@@ -134,6 +134,13 @@ function updateAverage() {
 let images = ["img1.png", "img2.png", "img3.png"];
 let texts = ["快點快點!!!", "太遜了吧~~~", "就這?", "老奶奶都比你快"]; 
 
+let preloaded = [];
+for (let src of images) {
+    let img = new Image();
+    img.src = src;
+    preloaded.push(img);
+}
+
 function showPopup() {
     popupImg.src = images[Math.floor(Math.random() * images.length)];
     popupText.textContent = texts[Math.floor(Math.random() * texts.length)];

@@ -1,115 +1,136 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<title>反應力測試</title>
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #222;
-        color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-    }
+    <meta charset="UTF-8">
+    <title>反應速度測試</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #1e1e1e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: "Microsoft JhengHei", sans-serif;
+        }
 
-    .container {
-        display: flex;
-        gap: 20px;
-    }
+        /* 整體容器 */
+        #container {
+            display: flex;
+            gap: 40px;
+        }
 
-    /* 左邊主點擊區 */
-    #clickArea {
-        width: 350px;
-        height: 250px;
-        background: linear-gradient(135deg, #001f3f, #001020);
-        border: 3px solid #000;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        user-select: none;
-        font-size: 24px;
-        font-weight: bold;
-        color: white;
-        transition: background 0.2s;
-    }
+        /* 中間測試區（縮小 + 圓角） */
+        #testArea {
+            width: 380px;
+            height: 260px;
+            background-color: #003060;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            user-select: none;
+        }
 
-    /* 右邊記錄區 */
-    #recordBox {
-        width: 180px;
-        height: 250px;
-        background: #555;
-        border-radius: 8px;
-        padding: 10px;
-        overflow-y: auto;
-        font-size: 18px;
-    }
+        /* 右側紀錄區（縮小 + 圓角） */
+        #recordArea {
+            width: 260px;
+            height: 260px;
+            background-color: #272727;
+            border-radius: 20px;
+            color: #ffffff;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
 
-    .record-item {
-        padding: 4px 0;
-        border-bottom: 1px solid #888;
-    }
-</style>
+        #recordArea h2 {
+            margin-top: 0;
+            text-align: center;
+            font-size: 22px;
+        }
+
+        .record {
+            font-size: 20px;
+            margin: 5px 0;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+    </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="clickArea">點擊開始</div>
+<div id="container">
+    <div id="testArea">點擊開始</div>
 
-    <div id="recordBox">
-        <strong>反應時間紀錄</strong><br><br>
+    <div id="recordArea">
+        <h2>反應紀錄</h2>
+        <div id="records"></div>
     </div>
 </div>
 
 <script>
-    const clickArea = document.getElementById("clickArea");
-    const recordBox = document.getElementById("recordBox");
+let testArea = document.getElementById("testArea");
+let records = document.getElementById("records");
 
-    let state = "idle";  // idle → ready(red) → green
-    let startTime;
-    let timeoutID;
+let hasStarted = false;       // 是否已經開始測試
+let readyToClick = false;     // 是否已經變綠色
+let startTime = 0;            // 計時起點
+let timeoutID = null;         // 用於控制隨機延遲
+let count = 0;                // 測試次數計數器
 
-    clickArea.addEventListener("click", function () {
-        if (state === "idle") {
-            // 使用者剛開始測試
-            clickArea.style.background = "red";
-            clickArea.textContent = "綠色時點擊";
-            state = "ready";
+testArea.addEventListener("click", function () {
+    // 尚未開始 → 開始測試
+    if (!hasStarted) {
+        hasStarted = true;
+        testArea.style.backgroundColor = "#930000";
+        testArea.textContent = "綠色時請點擊!";
 
-            // 隨機 1–5 秒後變綠
-            let randomDelay = Math.random() * 4000 + 1000; 
-            timeoutID = setTimeout(() => {
-                clickArea.style.background = "green";
-                clickArea.textContent = "點擊！";
-                startTime = performance.now();
-                state = "green";
-            }, randomDelay);
+        // 隨機 1.5 ~ 5 秒變綠
+        let delay = 1500 + Math.random() * (5000 - 1500);
 
-        } else if (state === "ready") {
-            // 提早點擊
-            clearTimeout(timeoutID);
-            clickArea.style.background = "linear-gradient(135deg, #001f3f, #001020)";
-            clickArea.textContent = "太快了！重新開始";
-            state = "idle";
-        } else if (state === "green") {
-            // 正確時機點擊，計算時間
-            let reaction = (performance.now() - startTime) / 1000;
-            let formatted = reaction.toFixed(4);
+        timeoutID = setTimeout(() => {
+            testArea.style.backgroundColor = "#007500";
+            testArea.textContent = "點擊!";
+            readyToClick = true;
+            startTime = performance.now();
+        }, delay);
 
-            // 紀錄到右邊方框
-            let div = document.createElement("div");
-            div.className = "record-item";
-            div.textContent = formatted + " 秒";
-            recordBox.appendChild(div);
+        return;
+    }
 
-            // 重置
-            clickArea.style.background = "linear-gradient(135deg, #001f3f, #001020)";
-            clickArea.textContent = "點擊開始";
-            state = "idle";
-        }
-    });
+    // 若過早點擊 (還沒變綠)
+    if (hasStarted && !readyToClick) {
+        testArea.textContent = "太早了! 重新開始";
+        testArea.style.backgroundColor = "#003060";
+        hasStarted = false;
+        clearTimeout(timeoutID);
+        return;
+    }
+
+    // 綠色 → 計算反應時間 (秒, 小數 4 位)
+    if (readyToClick) {
+        let reactionMs = performance.now() - startTime;
+        let reactionSec = (reactionMs / 1000).toFixed(4); // 秒數 4 位小數
+
+        count++; // 增加測試次數
+        
+        // 新增紀錄（包含次序）
+        let div = document.createElement("div");
+        div.className = "record";
+        div.textContent = count + ".  " + reactionSec + " 秒";
+        records.prepend(div);
+
+        // 重置
+        testArea.style.backgroundColor = "#003060";
+        testArea.textContent = "點擊開始";
+        hasStarted = false;
+        readyToClick = false;
+    }
+});
 </script>
 
 </body>

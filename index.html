@@ -65,15 +65,13 @@
             text-align: center;
         }
 
+        /* ===== Popup (圖片 + 文字) ===== */
         #popupContainer {
             position: fixed;
-            top: 10%;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
             pointer-events: none;
             z-index: 999;
             display: none;
+            text-align: center;
         }
         #popupImg {
             max-width: 180px;
@@ -90,7 +88,7 @@
 </head>
 <body>
 
-<!-- 先放 popup，這樣 JS 一定抓得到 -->
+<!-- Popup -->
 <div id="popupContainer">
     <img id="popupImg" src="">
     <div id="popupText"></div>
@@ -130,28 +128,45 @@ function updateAverage() {
     averageBox.textContent = "平均：" + avg + " 秒";
 }
 
-// 圖片（你的三張）
+// === 圖片與文字 ===
 let images = ["img1.png", "img2.png", "img3.png"];
-let texts = ["快點快點!!!", "太遜了吧~~~", "就這?", "老奶奶都比你快"]; 
+let texts = ["快點快點!!!", "太遜了吧~~~", "就這?", "老奶奶都比你快"];
 
-let preloaded = [];
-for (let src of images) {
-    let img = new Image();
-    img.src = src;
-    preloaded.push(img);
-}
-
+// ===== 隨機位置 Popup =====
 function showPopup() {
+
     popupImg.src = images[Math.floor(Math.random() * images.length)];
     popupText.textContent = texts[Math.floor(Math.random() * texts.length)];
+
+    const screenW = window.innerWidth;
+    const screenH = window.innerHeight;
+
+    const container = document.getElementById("container");
+    const rect = container.getBoundingClientRect();
+
+    let x, y;
+
+    // 不斷尋找不會與 container 重疊的隨機位置
+    do {
+        x = Math.random() * (screenW - 200);
+        y = Math.random() * (screenH - 200);
+    } while (
+        x + 180 > rect.left &&
+        x < rect.right &&
+        y + 160 > rect.top &&
+        y < rect.bottom
+    );
+
+    popupContainer.style.left = x + "px";
+    popupContainer.style.top = y + "px";
     popupContainer.style.display = "block";
+
     setTimeout(() => {
         popupContainer.style.display = "none";
     }, 1000);
 }
 
-// 點擊邏輯
-
+// ===== 主體邏輯 =====
 testArea.addEventListener("click", function () {
     if (!hasStarted) {
         hasStarted = true;
@@ -179,7 +194,7 @@ testArea.addEventListener("click", function () {
     if (readyToClick) {
         let reactionSec = ((performance.now() - startTime) / 1000).toFixed(4);
 
-        // ★ 大於 0.55 秒 → 跳出圖片
+        // 大於 0.55 秒 → 跳出圖片
         if (parseFloat(reactionSec) > 0.55) showPopup();
 
         times.push(parseFloat(reactionSec));
